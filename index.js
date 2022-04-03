@@ -1,6 +1,6 @@
 const Sql = require('sequelize');
 const express = require('express')
-
+const path = require("path")
 const myDB = new Sql({
     dialect: 'sqlite',
     storage: './data.db'
@@ -89,6 +89,20 @@ async function indexPage(req, res) {
 }
 
 app.get('/', indexPage)
+
+app.get("/input", (req, res)=>{
+
+  res.sendFile(path.join(__dirname+"/test.html"))
+})
+app.post("/input", async (req, res)=>{
+  console.log(req.body)
+  await Product.create({
+    productName: req.body.name,
+    sku: req.body.SKU
+  })
+  res.redirect("/input")
+})
+
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
