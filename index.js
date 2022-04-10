@@ -1,6 +1,6 @@
 const Sql = require('sequelize');
 const express = require('express')
-const path = require("path")
+
 const myDB = new Sql({
     dialect: 'sqlite',
     storage: './data.db'
@@ -58,7 +58,23 @@ app.use(express.urlencoded({ extended: true }));
 const port = 3000
 
 async function indexPage(req, res) {
-  let products = await Product.findAll();
+  const searchFilter = req.query.search
+  let product;
+
+  if(searchFilter){
+    products = await Product.findAll({
+      where: {
+        productName: {
+          [Sql.Op.like]: `%${searchFilter}%`
+        }
+      }
+    });
+  }else{
+    products = await Product.findAll();
+  }
+
+  console.log(products.length);
+
   res.send(`
 <html>
   <head>
@@ -67,7 +83,35 @@ async function indexPage(req, res) {
   </head>
   <body>
     <div class="box">
+      <form method="post" action="/newProduct">
+        <div class="field">
+          <div class="control">
+            <input class="input" type="text" name="name" placeholder="New product name" />
+          </div>
+        </div>
+        <div class="field">
+          <div class="control">
+            <input class="input" type="text" name="sku" placeholder="New product SKU"/>
+          </div>
+        </div>
+        <input class="button is-primary" type="submit" value="Submit" />
+      </form>
+    </div>
+    <div class="box">
       <h1>Products</h1>
+      <form method="get" action="/">
+        <div class="field has-addons">
+          <div class="control">
+            <input class="input" type="text" name="search" placeholder="Find a product">
+          </div>
+          <div class="control">
+            <button type="submit" class="button is-info">
+              Search
+            </button>
+          </div>
+        </div>
+      </form>
+
       <table class="table is-fullwidth">
         <thead>
           <th>ID</th>
@@ -88,25 +132,22 @@ async function indexPage(req, res) {
   `)
 }
 
-app.get('/', indexPage)
 
-app.get("/input", (req, res)=>{
-
-  res.sendFile(path.join(__dirname+"/test.html"))
-})
-app.post("/input", async (req, res)=>{
-  console.log(req.body)
+async function newProduct(req, res){
+  const newProductName = req.body.name;
+  const newProductSKU = req.body.sku;
   await Product.create({
-    productName: req.body.name,
-    sku: req.body.SKU
+    productName: newProductName,
+    sku: newProductSKU,
   })
-  res.redirect("/input")
-})
+  res.redirect('/')
+}
 
+app.get('/', indexPage)
+app.post("/newProduct", newProduct)
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
-
 
 
